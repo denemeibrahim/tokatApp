@@ -1,186 +1,269 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tokat Oyunu</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sinir Atma Oyunu</title>
 
 <style>
-body {
-  margin: 0;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  background: #0f1220;
-  font-family: system-ui, sans-serif;
+:root{
+  --bg:#0f1220;
+  --card:#161a33;
+  --accent:#ff4d6d;
+  --text:#eef1ff;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  background:radial-gradient(1200px 600px at 50% -10%,#1b1f4b,var(--bg));
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+}
+.card{
+  width:min(92vw,420px);
+  background:linear-gradient(180deg,#1a1f4a,var(--card));
+  border-radius:20px;
+  padding:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);
+  text-align:center;
+}
+.title{margin:6px 0 8px;font-weight:700}
+.tools{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-bottom:8px;
+}
+.tools button{
+  border:0;
+  border-radius:12px;
+  padding:10px 6px;
+  font-weight:800;
+  cursor:pointer;
+  background:#222861;
+  color:#fff;
+}
+.tools button.active{
+  outline:2px solid #ff6b81;
+  background:#2a3175;
+}
+.photo-wrap{
+  position:relative;
+  border-radius:16px;
+  overflow:hidden;
+  background:#000;
+  user-select:none;
+  touch-action:manipulation;
+}
+#face{
+  display:block;
+  width:100%;
+  transition:transform .1s ease;
+}
+#damage{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.effect{
+  position:absolute;
+  pointer-events:none;
+  opacity:0;
+  will-change:transform;
+}
+.effect.active{opacity:1}
+#hand{width:140px}
+#glove{width:160px}
+#egg{width:70px}
+
+@keyframes fly{
+  to{
+    transform:translate(var(--tx),var(--ty)) rotate(var(--rot));
+    opacity:0;
+  }
 }
 
-.card {
-  width: 90vw;
-  max-width: 420px;
-  background: #161a33;
-  padding: 16px;
-  border-radius: 18px;
-  color: white;
-  text-align: center;
+.blood{
+  position:absolute;
+  width:14px;
+  height:14px;
+  background:darkred;
+  border-radius:50%;
+  animation:bloodFly .9s forwards;
+}
+@keyframes bloodFly{
+  to{
+    transform:translate(var(--dx),var(--dy)) scale(.5);
+    opacity:0;
+  }
 }
 
-.photo-wrap {
-  position: relative;
-  overflow: hidden;
-  border-radius: 14px;
+.egg-splash{
+  position:absolute;
+  width:40px;
+  height:30px;
+  background:rgba(255,255,200,.85);
+  border-radius:50% 50% 60% 60%;
+  filter:blur(1px);
+  animation:drip 3s forwards;
+}
+@keyframes drip{
+  to{
+    transform:translateY(80px);
+    opacity:0;
+  }
 }
 
-#face {
-  width: 100%;
-  display: block;
-  transition: transform 0.08s ease;
+.hud{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
 }
-
-#face.slap {
-  transform: translateX(6px) rotate(1deg);
-}
-
-/* YÜZ KIZARMA / MORARMA */
-#damage {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 60%, rgba(180,0,0,0.0), rgba(120,0,0,0.0));
-  pointer-events: none;
-  transition: background 0.3s ease;
-}
-
-/* EL */
-#hand {
-  position: absolute;
-  width: 140px;
-  right: -160px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-#hand.active {
-  animation: handHit 0.18s ease-out forwards;
-}
-
-@keyframes handHit {
-  0%   { right: -160px; opacity: 0; }
-  30%  { opacity: 1; }
-  100% { right: 40%; opacity: 0; }
-}
-
-/* KAN */
-.blood {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: darkred;
-  border-radius: 50%;
-  pointer-events: none;
-  animation: bloodFly 0.9s forwards;
-}
-
-@keyframes bloodFly {
-  from { opacity: 1; transform: translate(0,0) scale(1); }
-  to   { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.6); }
-}
-
-button {
-  margin-top: 12px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: none;
-  font-weight: bold;
+.reset{
+  border:0;
+  border-radius:999px;
+  padding:8px 14px;
+  background:linear-gradient(180deg,#ff6b81,var(--accent));
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
 }
 </style>
 </head>
 
 <body>
-<div class="card">
-  <h3>Sinirlendin mi? Dokun 😈</h3>
+<main class="card">
+  <div class="tools">
+    <button id="btnEgg" class="active">🥚 Yumurta</button>
+    <button id="btnSlap">🖐️ Tokat</button>
+    <button id="btnGlove">🥊 Boks</button>
+  </div>
+
+  <div class="title">Sinirlendin mi? Dokun 😈</div>
 
   <div class="photo-wrap" id="wrap">
     <img id="face" src="face.jpg">
     <div id="damage"></div>
-    <img id="hand" src="hand.png">
+    <img id="hand" class="effect" src="hand.png">
+    <img id="glove" class="effect" src="glove.png">
+    <img id="egg" class="effect" src="egg.png">
   </div>
 
-  <p>Tokat: <span id="count">0</span></p>
-  <button id="reset">Sıfırla</button>
-</div>
+  <div class="hud">
+    <div>Vuruş: <b id="count">0</b></div>
+    <button class="reset" id="reset">Sıfırla</button>
+  </div>
+</main>
 
 <audio id="slapSound" src="slap.mp3"></audio>
 <audio id="angrySound" src="angry.mp3"></audio>
 
 <script>
-const wrap = document.getElementById("wrap");
-const face = document.getElementById("face");
-const hand = document.getElementById("hand");
-const damage = document.getElementById("damage");
-const countEl = document.getElementById("count");
-const slapSound = document.getElementById("slapSound");
-const angrySound = document.getElementById("angrySound");
+const wrap = document.getElementById('wrap');
+const face = document.getElementById('face');
+const hand = document.getElementById('hand');
+const glove = document.getElementById('glove');
+const egg = document.getElementById('egg');
+const countEl = document.getElementById('count');
+const slapSound = document.getElementById('slapSound');
+const angrySound = document.getElementById('angrySound');
 
-let count = Number(localStorage.getItem("slap") || 0);
-countEl.textContent = count;
+let mode = 'egg';
+let count = 0;
 
-function vibrate() {
-  if (navigator.vibrate) navigator.vibrate(120);
+document.getElementById('btnEgg').onclick=()=>setMode('egg');
+document.getElementById('btnSlap').onclick=()=>setMode('slap');
+document.getElementById('btnGlove').onclick=()=>setMode('glove');
+
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.tools button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn'+m.charAt(0).toUpperCase()+m.slice(1)).classList.add('active');
 }
 
-function updateDamage() {
-  const level = Math.min(count / 5, 5);
-  damage.style.background = `radial-gradient(circle at 50% 60%, rgba(180,0,0,${0.1*level}), rgba(80,0,80,${0.08*level}))`;
+function randStart(w,h){
+  const s=Math.floor(Math.random()*4);
+  if(s===0) return {x:-100,y:Math.random()*h};
+  if(s===1) return {x:w+100,y:Math.random()*h};
+  if(s===2) return {x:Math.random()*w,y:-100};
+  return {x:Math.random()*w,y:h+100};
 }
 
-function blood(x, y) {
-  for (let i = 0; i < 8; i++) {
-    const b = document.createElement("div");
-    b.className = "blood";
-    b.style.left = x + "px";
-    b.style.top = y + "px";
-    b.style.setProperty("--dx", (Math.random()*80-40)+"px");
-    b.style.setProperty("--dy", (Math.random()*80-20)+"px");
+function launch(el,headX,headY){
+  const r=wrap.getBoundingClientRect();
+  const start=randStart(r.width,r.height);
+  el.style.left=start.x+'px';
+  el.style.top=start.y+'px';
+
+  const dx=headX-start.x;
+  const dy=headY-start.y;
+  const angle=Math.atan2(dy,dx)*180/Math.PI;
+
+  el.style.setProperty('--tx',dx+'px');
+  el.style.setProperty('--ty',dy+'px');
+  el.style.setProperty('--rot',angle+'deg');
+
+  el.classList.add('active');
+  el.style.animation='fly .25s linear forwards';
+
+  // yüz savrulması
+  face.style.transform=`translate(${dx*0.03}px,${dy*0.03}px) rotate(${angle*0.02}deg)`;
+  setTimeout(()=>face.style.transform='',120);
+}
+
+function blood(x,y){
+  for(let i=0;i<6;i++){
+    const b=document.createElement('div');
+    b.className='blood';
+    b.style.left=x+'px';
+    b.style.top=y+'px';
+    b.style.setProperty('--dx',(Math.random()*80-40)+'px');
+    b.style.setProperty('--dy',(Math.random()*80)+'px');
     wrap.appendChild(b);
-    setTimeout(() => b.remove(), 900);
+    setTimeout(()=>b.remove(),900);
   }
 }
 
-wrap.addEventListener("pointerdown", e => {
-  const r = wrap.getBoundingClientRect();
-  const x = e.clientX - r.left;
-  const y = e.clientY - r.top;
+function eggSplash(x,y){
+  for(let i=0;i<3;i++){
+    const s=document.createElement('div');
+    s.className='egg-splash';
+    s.style.left=(x-20+Math.random()*20)+'px';
+    s.style.top=(y-10)+'px';
+    wrap.appendChild(s);
+    setTimeout(()=>s.remove(),3000);
+  }
+}
+
+wrap.addEventListener('pointerdown',()=>{
+  const r=wrap.getBoundingClientRect();
+  const headX=r.width/2;
+  const headY=r.height*0.45;
 
   count++;
-  localStorage.setItem("slap", count);
-  countEl.textContent = count;
+  countEl.textContent=count;
 
-  face.classList.remove("slap");
-  hand.classList.remove("active");
-  void face.offsetWidth;
-  void hand.offsetWidth;
+  [hand,glove,egg].forEach(e=>{
+    e.classList.remove('active');
+    e.style.animation='none';
+    void e.offsetWidth;
+  });
 
-  face.classList.add("slap");
-  hand.classList.add("active");
+  if(mode==='slap'){launch(hand,headX,headY);blood(headX,headY);}
+  if(mode==='glove'){launch(glove,headX,headY);blood(headX,headY);}
+  if(mode==='egg'){launch(egg,headX,headY);eggSplash(headX,headY);}
 
-  blood(x, y);
-  updateDamage();
-  vibrate();
-
-  try { slapSound.currentTime = 0; slapSound.play(); } catch {}
-
-  if (count % 5 === 0) {
-    try { angrySound.currentTime = 0; angrySound.play(); } catch {}
-  }
+  if(navigator.vibrate) navigator.vibrate(120);
+  slapSound.currentTime=0;slapSound.play();
+  if(count%5===0){angrySound.currentTime=0;angrySound.play();}
 });
 
-document.getElementById("reset").onclick = () => {
-  count = 0;
-  localStorage.setItem("slap", 0);
-  countEl.textContent = 0;
-  damage.style.background = "transparent";
+document.getElementById('reset').onclick=()=>{
+  count=0;
+  countEl.textContent=0;
 };
 </script>
 </body>
