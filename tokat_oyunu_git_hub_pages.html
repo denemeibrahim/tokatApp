@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tokat Oyunu</title>
+  <meta name="description" content="Sinir atmalık mini oyun. Fotoğrafa tıkla, tokadı bas." />
+  <style>
+    :root { --bg:#0f1220; --card:#161a33; --accent:#ff4d6d; --text:#eef1ff; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100svh; display: grid; place-items: center;
+      background: radial-gradient(1200px 600px at 50% -10%, #1b1f4b, var(--bg));
+      color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+    .card {
+      width: min(92vw, 420px); background: linear-gradient(180deg, #1a1f4a, var(--card));
+      border-radius: 20px; padding: 16px 16px 18px; box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      text-align: center;
+    }
+    h1 { font-size: 1.1rem; margin: 6px 0 10px; opacity: .9; }
+    .photo-wrap {
+      position: relative; border-radius: 16px; overflow: hidden; background: #000;
+      user-select: none; touch-action: manipulation;
+    }
+    img#face {
+      display: block; width: 100%; height: auto;
+      transition: transform .08s ease, filter .08s ease;
+    }
+    .hit {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(circle at var(--x) var(--y), rgba(255,255,255,.35), transparent 35%);
+      opacity: 0; transition: opacity .08s ease;
+    }
+    .slap {
+      transform: translateX(6px) rotate(1deg) scale(.995);
+      filter: contrast(1.05) saturate(1.1);
+    }
+    .hit.show { opacity: 1; }
+    .hud {
+      display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; margin-top: 12px;
+    }
+    .count {
+      text-align: left; font-weight: 600; letter-spacing: .2px;
+    }
+    button {
+      appearance: none; border: 0; border-radius: 999px; padding: 10px 14px;
+      background: linear-gradient(180deg, #ff6b81, var(--accent)); color: #fff; font-weight: 700;
+      box-shadow: 0 8px 20px rgba(255,77,109,.35); cursor: pointer;
+    }
+    footer { opacity: .6; font-size: .75rem; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Sinirlendin mi? Fotoğrafa dokun 😅</h1>
+    <div class="photo-wrap" id="wrap">
+      <!-- YÜZ FOTOĞRAFINI DEĞİŞTİR: /assets/face.jpg -->
+      <img id="face" src="assets/face.jpg" alt="Yüz" />
+      <div class="hit" id="hit"></div>
+    </div>
+    <div class="hud">
+      <div class="count">Tokat sayısı: <span id="count">0</span></div>
+      <button id="reset">Sıfırla</button>
+    </div>
+    <footer>Mobil uyumlu • Dokun/Tıkla</footer>
+  </main>
+
+  <!-- Basit tokat sesi (opsiyonel). assets/slap.mp3 ekleyebilirsin -->
+  <audio id="sound" src="assets/slap.mp3" preload="auto"></audio>
+
+  <script>
+    const face = document.getElementById('face');
+    const wrap = document.getElementById('wrap');
+    const hit = document.getElementById('hit');
+    const countEl = document.getElementById('count');
+    const resetBtn = document.getElementById('reset');
+    const sound = document.getElementById('sound');
+
+    let count = Number(localStorage.getItem('slap-count') || 0);
+    countEl.textContent = count;
+
+    function slap(x, y) {
+      count += 1;
+      localStorage.setItem('slap-count', count);
+      countEl.textContent = count;
+
+      face.classList.remove('slap');
+      hit.classList.remove('show');
+      void face.offsetWidth;
+
+      face.classList.add('slap');
+      hit.style.setProperty('--x', x + 'px');
+      hit.style.setProperty('--y', y + 'px');
+      hit.classList.add('show');
+
+      try { sound.currentTime = 0; sound.play(); } catch {}
+
+      setTimeout(() => {
+        face.classList.remove('slap');
+        hit.classList.remove('show');
+      }, 90);
+    }
+
+    wrap.addEventListener('pointerdown', (e) => {
+      const r = wrap.getBoundingClientRect();
+      slap(e.clientX - r.left, e.clientY - r.top);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      count = 0; localStorage.setItem('slap-count', 0); countEl.textContent = 0;
+    });
+  </script>
+</body>
+</html>
