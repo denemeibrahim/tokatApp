@@ -4,60 +4,47 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tokat Oyunu</title>
-  <meta name="description" content="Sinir atmalık mini oyun. Fotoğrafa tıkla, tokadı bas." />
+  <meta name="description" content="Sinir atmalık mini oyun. Fotoğrafa dokun, tokadı bas." />
   <style>
     :root { --bg:#0f1220; --card:#161a33; --accent:#ff4d6d; --text:#eef1ff; }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; min-height: 100svh; display: grid; place-items: center;
-      background: radial-gradient(1200px 600px at 50% -10%, #1b1f4b, var(--bg));
-      color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    body { margin:0; min-height:100svh; display:grid; place-items:center; background:radial-gradient(1200px 600px at 50% -10%, #1b1f4b, var(--bg)); color:var(--text); font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    .card { width:min(92vw, 420px); background:linear-gradient(180deg, #1a1f4a, var(--card)); border-radius:20px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.45); text-align:center; }
+    h1 { font-size:1.1rem; margin:6px 0 10px; opacity:.9; }
+    .photo-wrap { position:relative; border-radius:16px; overflow:hidden; background:#000; user-select:none; touch-action:manipulation; }
+    img#face { display:block; width:100%; height:auto; transition:transform .08s ease, filter .08s ease; }
+
+    /* Tokat animasyonu */
+    .slap { transform:translateX(6px) rotate(1deg) scale(.995); filter:contrast(1.05) saturate(1.1); }
+
+    /* El */
+    .hand { position:absolute; width:110px; height:110px; right:-120px; top:50%; transform:translateY(-50%); opacity:0; pointer-events:none; }
+    .hand.show { animation:hand-slap .12s ease-out forwards; }
+    @keyframes hand-slap {
+      0% { right:-120px; opacity:0; }
+      30% { opacity:1; }
+      100% { right:40%; opacity:0; }
     }
-    .card {
-      width: min(92vw, 420px); background: linear-gradient(180deg, #1a1f4a, var(--card));
-      border-radius: 20px; padding: 16px 16px 18px; box-shadow: 0 20px 60px rgba(0,0,0,.45);
-      text-align: center;
+
+    /* Kan efekti */
+    .blood { position:absolute; width:14px; height:14px; background:#b00020; border-radius:50%; opacity:.9; pointer-events:none; animation:blood .9s ease-out forwards; }
+    @keyframes blood {
+      0% { transform:translate(0,0) scale(1); opacity:.9; }
+      100% { transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0; }
     }
-    h1 { font-size: 1.1rem; margin: 6px 0 10px; opacity: .9; }
-    .photo-wrap {
-      position: relative; border-radius: 16px; overflow: hidden; background: #000;
-      user-select: none; touch-action: manipulation;
-    }
-    img#face {
-      display: block; width: 100%; height: auto;
-      transition: transform .08s ease, filter .08s ease;
-    }
-    .hit {
-      position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(circle at var(--x) var(--y), rgba(255,255,255,.35), transparent 35%);
-      opacity: 0; transition: opacity .08s ease;
-    }
-    .slap {
-      transform: translateX(6px) rotate(1deg) scale(.995);
-      filter: contrast(1.05) saturate(1.1);
-    }
-    .hit.show { opacity: 1; }
-    .hud {
-      display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; margin-top: 12px;
-    }
-    .count {
-      text-align: left; font-weight: 600; letter-spacing: .2px;
-    }
-    button {
-      appearance: none; border: 0; border-radius: 999px; padding: 10px 14px;
-      background: linear-gradient(180deg, #ff6b81, var(--accent)); color: #fff; font-weight: 700;
-      box-shadow: 0 8px 20px rgba(255,77,109,.35); cursor: pointer;
-    }
-    footer { opacity: .6; font-size: .75rem; margin-top: 10px; }
+
+    .hud { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-top:12px; }
+    .count { text-align:left; font-weight:600; }
+    button { appearance:none; border:0; border-radius:999px; padding:10px 14px; background:linear-gradient(180deg, #ff6b81, var(--accent)); color:#fff; font-weight:700; box-shadow:0 8px 20px rgba(255,77,109,.35); cursor:pointer; }
+    footer { opacity:.6; font-size:.75rem; margin-top:10px; }
   </style>
 </head>
 <body>
   <main class="card">
     <h1>Sinirlendin mi? Fotoğrafa dokun 😅</h1>
     <div class="photo-wrap" id="wrap">
-      <!-- YÜZ FOTOĞRAFINI DEĞİŞTİR: /assets/face.jpg -->
       <img id="face" src="face.jpg" alt="Yüz" />
-      <div class="hit" id="hit"></div>
+      <img id="hand" class="hand" src="hand.png" alt="Tokat Eli" />
     </div>
     <div class="hud">
       <div class="count">Tokat sayısı: <span id="count">0</span></div>
@@ -66,13 +53,12 @@
     <footer>Mobil uyumlu • Dokun/Tıkla</footer>
   </main>
 
-  <!-- Basit tokat sesi (opsiyonel). assets/slap.mp3 ekleyebilirsin -->
   <audio id="sound" src="slap.mp3" preload="auto"></audio>
 
   <script>
     const face = document.getElementById('face');
     const wrap = document.getElementById('wrap');
-    const hit = document.getElementById('hit');
+    const hand = document.getElementById('hand');
     const countEl = document.getElementById('count');
     const resetBtn = document.getElementById('reset');
     const sound = document.getElementById('sound');
@@ -80,26 +66,37 @@
     let count = Number(localStorage.getItem('slap-count') || 0);
     countEl.textContent = count;
 
+    function spawnBlood(x, y) {
+      const n = 6 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < n; i++) {
+        const d = document.createElement('div');
+        d.className = 'blood';
+        d.style.left = x + 'px';
+        d.style.top = y + 'px';
+        d.style.setProperty('--dx', (Math.random()*80 - 40) + 'px');
+        d.style.setProperty('--dy', (Math.random()*80 - 20) + 'px');
+        wrap.appendChild(d);
+        setTimeout(() => d.remove(), 900);
+      }
+    }
+
     function slap(x, y) {
       count += 1;
       localStorage.setItem('slap-count', count);
       countEl.textContent = count;
 
       face.classList.remove('slap');
-      hit.classList.remove('show');
       void face.offsetWidth;
-
       face.classList.add('slap');
-      hit.style.setProperty('--x', x + 'px');
-      hit.style.setProperty('--y', y + 'px');
-      hit.classList.add('show');
 
+      hand.classList.remove('show');
+      void hand.offsetWidth;
+      hand.classList.add('show');
+
+      spawnBlood(x, y);
       try { sound.currentTime = 0; sound.play(); } catch {}
 
-      setTimeout(() => {
-        face.classList.remove('slap');
-        hit.classList.remove('show');
-      }, 90);
+      setTimeout(() => face.classList.remove('slap'), 120);
     }
 
     wrap.addEventListener('pointerdown', (e) => {
